@@ -1,0 +1,318 @@
+# FACULTAD DE ESTUDIOS SUPERIORES ARAGÓN UNAM
+# PROYECTO ESTRUCTURAS DISCRETAS | Versión 1.0
+# AUTOR: ANDRÉS HERNÁNDEZ
+# FECHA: 04/06/2020
+
+from tkinter import*
+from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import numpy as np
+from matplotlib import style
+import matplotlib.animation as animation
+
+
+#Variables iniciales:
+x = "defaul"
+y = "defaul"
+ids = "defaul"
+tipo=""
+diccionario={} #Vertice:Coordenada
+distancias={} #Vertice:Vertice:Distancia Ej. A:{A:0,B:2.21,C:301.21,D:21.}
+tabla_dijkstra={}#{Vertice: Acumulado,Temporal}
+ruta_optima = []
+
+#Funciones
+def represent(Pos_x, Pos_y,ids_get):
+    global x
+    global y
+    global ids
+    global tipo
+    global diccionario
+    global distancias
+    tipo="vertice"
+    #try:
+    x = int(Pos_x)
+    y = int(Pos_y)
+    ids = str(ids_get)
+    diccionario.setdefault(ids,[x,y])#(clave, elemento)
+    distancias.setdefault(ids,{ids:0})
+    #except:
+     #   print("capturación de error")
+    ani.event_source.start() #INICIA/REANUDA ANIMACIÓN
+    #print("Botón pulsado")
+
+def represent_arista(nombre_a,nombre_b):
+    global diccionario
+    global tipo
+    global x
+    global y
+    global distancias
+    tipo="arista"
+    nombre_a=str(nombre_a)
+    nombre_b=str(nombre_b)
+    try:
+        x = [diccionario[nombre_a][0],diccionario[nombre_b][0]]
+        y = [diccionario[nombre_a][1],diccionario[nombre_b][1]]
+
+        comodin_distancias = distancias[nombre_a]
+        comodin_distancias.setdefault(nombre_b,(((diccionario[nombre_b][0]-diccionario[nombre_a][0])**2)+((diccionario[nombre_b][1]-diccionario[nombre_a][1])**2))**0.5)
+        distancias[nombre_a] = comodin_distancias
+        
+        comodin_distancias = distancias[nombre_b]
+        comodin_distancias.setdefault(nombre_a,(((diccionario[nombre_b][0]-diccionario[nombre_a][0])**2)+((diccionario[nombre_b][1]-diccionario[nombre_a][1])**2))**0.5)
+        distancias[nombre_b] = comodin_distancias
+        
+    except:
+        print("capturación de error")
+    ani.event_source.start() #INICIA/REANUDA ANIMACIÓN
+    #print("Botón pulsado")
+
+def represent_algoritmo_dijkstra(v_i,v_f):
+    global tabla_dijkstra
+    global diccionario
+    global tipo
+    global distancias
+    global ruta_optima
+
+    ruta_optima = []
+    tipo = "dijkstra"
+
+    tabla_dijkstra.clear() #borra tabla
+
+    #Construye la primera columna
+    for i in diccionario.keys():
+        tabla_dijkstra.setdefault(i,[-1,-1])
+    print(tabla_dijkstra)
+
+    #Asigna por defaul los valores de 0,0 a el vertice inicial y asigna el comienzo del algoritmo
+    tabla_dijkstra[v_i][0] = 0
+    tabla_dijkstra[v_i][1] = 0
+    ver_co = v_i #vertice de camino optimo
+    fijo_acumulado = 0
+    contador = 0
+    
+    #Algortimo_Dikstra
+    while tabla_dijkstra[v_f][0] == -1: #Ejecuta el algoritmo hasta que el valor acumulado sea diferente de menos uno
+        #devolver las distancias de los vertices
+        #conectados al vertice de camino optimo a exepción de el mismo
+        #y las coloca en la fila de temporales
+        for i in distancias[ver_co].keys():
+            if i != ver_co: #esto elimina el si mism0
+                if tabla_dijkstra[i][1] == -1:
+                    tabla_dijkstra[i][1]=distancias[ver_co][i]+fijo_acumulado
+                #esto colocará la distancia en temporales                    
+                #ahora si previamente se coloco una distancia en temporales, se sustituye solamente si es menor
+                #a la distancia temporal que se tenia
+                else:
+                    if tabla_dijkstra[i][1] > distancias[ver_co][i]+fijo_acumulado:
+                        tabla_dijkstra[i][1]=distancias[ver_co][i]+fijo_acumulado
+                    
+        #Una vez colocado los valores en temporales se escojera al  menor de ellos para que sea el nuevo vertice
+        #optimo y colocar dicho valor en acumulado
+        #Para eso recorremos la tabla de dijkstra en la sección de temporales y tomamos
+        #el menor que contenga un -1 en su culumna de acumulado y temporal.
+        valor_menor = 1000000 #valor menor por defecto
+        for i in tabla_dijkstra.keys():
+            if tabla_dijkstra[i][0] == -1:
+                if tabla_dijkstra[i][1] != -1:
+                    if tabla_dijkstra[i][1] < valor_menor:
+                        valor_menor = tabla_dijkstra[i][1]
+                        ver_co = i
+        tabla_dijkstra[ver_co][0]=tabla_dijkstra[ver_co][1]
+        fijo_acumulado = tabla_dijkstra[ver_co][0]
+        print(tabla_dijkstra)
+
+    #Hasta este punto se creo la tabla, ahora sólo habría que recorrerla de reversa para obtener la ruta crítica
+    #Para ello necesito centrarme en mi vertice final
+    ver_co = v_f
+    ruta_optima.append(v_f)
+    
+    while ver_co != v_i:#Hasta llegar a el v_i
+        #analizamos que vertices estan al lado de mi vertice optimo
+        for i in distancias[ver_co].keys():
+            #para cada distancia del vertice le restamos el valor de su acumulado
+            #que corresponde a la tabla dijkstra
+            diferencia = tabla_dijkstra[ver_co][0] - distancias[ver_co][i]
+            #Si dicha diferencia corresponde al acumulado del vertice
+            #Este será una ruta optima y pasara a ser el nuevo vertice_co
+            if diferencia == tabla_dijkstra[i][0]:
+                siguiente_vertice=i
+
+        ruta_optima.append(siguiente_vertice)
+        ver_co = siguiente_vertice
+        print(ruta_optima)
+    ani.event_source.start() #INICIA/REANUDA ANIMACIÓN
+
+def dibuja_ruta_optima(nombre_a,nombre_b):
+    global diccionario
+    global x
+    global y
+    nombre_a=str(nombre_a)
+    nombre_b=str(nombre_b)
+    try:
+        x = [diccionario[nombre_a][0],diccionario[nombre_b][0]]
+        y = [diccionario[nombre_a][1],diccionario[nombre_b][1]]
+    except:
+        print("capturación de error")
+        
+def creador(i):
+    global axl
+    global ids
+    global distancias
+    global x
+    global y
+    global diccionario
+    global ruta_optima
+    
+    if tipo=="vertice":
+        try:
+            axl.plot(x,y,marker="o",color="red")
+            axl.annotate(str(ids),(x,y))
+            #print("bucle")
+        except:
+            print("capturación de error")
+    if tipo=="arista":
+        try:
+            axl.plot(x,y,color="red")#####
+            print(distancias)
+            #axl.annotate(ids,(x,y))
+            #print("bucle")
+        except:
+            print("capturación de error")
+    if tipo=="dijkstra":
+        #print("dijkstra")
+        for i in range(0,len(ruta_optima)-1):
+            v_A=ruta_optima[i]
+            v_B=ruta_optima[i+1]
+            dibuja_ruta_optima(v_A,v_B)
+            axl.plot(x,y,color="blue")
+    ani.event_source.stop()
+        
+def windows_vertice_creator():
+    new_vertice = Toplevel(root)
+    new_vertice.title("Crear Nuevo Vértice")
+    new_vertice.resizable(False,False)
+    new_vertice.iconbitmap("anonymous.ico")
+    new_vertice.geometry("300x150")
+
+    label_vertice = Label(new_vertice, text="Nuevo Vértice")
+    label_vertice.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+    label_vertice = Label(new_vertice, text="Introduce el nombre del vertice:")
+    label_vertice.grid(row=1, column=0)
+    ids_vertice=Entry(new_vertice)
+    ids_vertice.grid(row=1, column=1)
+
+    label_vertice = Label(new_vertice, text="Introduce la posición de x:")
+    label_vertice.grid(row=2, column=0)
+    Pos_x=Entry(new_vertice)
+    Pos_x.grid(row=2, column=1)
+
+    label_vertice = Label(new_vertice, text="Introduce la posición de y:")
+    label_vertice.grid(row=3, column=0)
+    Pos_y=Entry(new_vertice)
+    Pos_y.grid(row=3, column=1)
+
+
+    boton_enviar_vertice = Button(new_vertice, text="Crear",command=lambda: represent(Pos_x.get(),Pos_y.get(),ids_vertice.get()))
+    boton_enviar_vertice.grid(row=4, column=0,columnspan=2, pady=10)
+
+def windows_arista_creator():
+    new_arista = Toplevel(root)
+    new_arista.title("Crear Nueva Arista")
+    new_arista.resizable(False,False)
+    new_arista.iconbitmap("anonymous.ico")
+    new_arista.geometry("350x150")
+
+    label_arista = Label(new_arista, text="Nueva Arista")
+    label_arista.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+    label_arista = Label(new_arista, text="Introduce el nombre del vértice inicial:")
+    label_arista.grid(row=1, column=0)
+    vertice_inicial=Entry(new_arista)
+    vertice_inicial.grid(row=1, column=1)
+
+    label_arista = Label(new_arista, text="Introduce el nombre del vértice final:")
+    label_arista.grid(row=2, column=0)
+    vertice_final=Entry(new_arista)
+    vertice_final.grid(row=2, column=1)
+
+    boton_crear_arista = Button(new_arista, text="Crear",command=lambda:represent_arista(vertice_inicial.get(),vertice_final.get()))
+    boton_crear_arista.grid(row=3, column=0,columnspan=2, pady=10)
+
+def windows_mejor_ruta():
+    new_mejor_ruta = Toplevel(root)
+    new_mejor_ruta.title("Calcular mejor ruta")
+    new_mejor_ruta.resizable(False,False)
+    new_mejor_ruta.iconbitmap("anonymous.ico")
+    new_mejor_ruta.geometry("350x150")
+
+    label_mejor_ruta = Label(new_mejor_ruta, text="Calcular mejor ruta")
+    label_mejor_ruta.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+    label_mejor_ruta = Label(new_mejor_ruta, text="Introduce el nombre del vértice inicial:")
+    label_mejor_ruta.grid(row=1, column=0)
+    c_vertice_inicial=Entry(new_mejor_ruta)
+    c_vertice_inicial.grid(row=1, column=1)
+    
+    label_mejor_ruta = Label(new_mejor_ruta, text="Introduce el nombre del vértice final:")
+    label_mejor_ruta.grid(row=2, column=0)
+    c_vertice_final=Entry(new_mejor_ruta)
+    c_vertice_final.grid(row=2, column=1)
+
+    boton_mejor_ruta = Button(new_mejor_ruta, text="Calcular",command=lambda:represent_algoritmo_dijkstra(c_vertice_inicial.get(),c_vertice_final.get()))
+    boton_mejor_ruta.grid(row=3, column=0,columnspan=2, pady=10)
+
+#Interfaz gráfico
+root=Tk()
+root.title("Proyecto Estructuras Discretas | FES Aragón | Autor: Andrés Hernández")
+root.resizable(False,False)
+root.iconbitmap("anonymous.ico")
+root.geometry("845x455")
+
+#-----FRAME
+my_frame=Frame()
+my_frame.grid(row=0, padx=10) #side, anchor
+my_frame.config(bg="gray")
+my_frame.config(width="325",height="175")
+
+pantalla=Frame()
+pantalla.grid(column=1,row=0,pady=10)
+pantalla.config(bg="white")
+pantalla.config(width="300",height="300")
+
+#------ Mapa
+fig = Figure(figsize = (5,4), dpi=100)
+axl= fig.add_subplot(111)
+axl.plot([100,0],[0,0],color="blue")
+axl.plot([0,0],[0,100],color="blue")
+axl.plot([100,0],[100,100],color="blue")
+axl.plot([100,100],[0,100],color="blue")
+
+canvas = FigureCanvasTkAgg(fig, master=pantalla)
+#canvas.draw()
+canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+
+#------LABELS AND BOTONS
+Label_1= Label(my_frame,text="Proyecto Final Estructuras Discretas", font=(18))
+Label_1.grid(row=0, column=0, padx=10, pady=10)
+
+boton_crear_vertice = Button(my_frame, text="Crear vértice", command=windows_vertice_creator)
+boton_crear_vertice.grid(row=1, column=0, padx=10, pady=10)
+
+boton_crear_arista = Button(my_frame, text="Crear Arista", command=windows_arista_creator)
+boton_crear_arista.grid(row=2, column=0, padx=10, pady=10)
+
+boton_calcular_mejor_ruta = Button(my_frame, text="Calcular mejor ruta", command=windows_mejor_ruta)
+boton_calcular_mejor_ruta.grid(row=3, column=0, padx=10, pady=10)
+
+#----- ACTUALIZACIÓN DE GRÁGICA
+ani = animation.FuncAnimation(fig, creador, interval=1000)
+#toolbar=NavigationToolbar2Tk(canvas, pantalla)
+#toolbar.update()
+#canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+
+root.mainloop()
+
+
